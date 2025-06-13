@@ -53,10 +53,10 @@ export function useNotifications(sensorData: SensorData) {
       }
     }
 
-    if (data.humidity > thresholds.humidity.critical) {
+    if (data.humidity < thresholds.humidity.critical) {
       if (Notification.permission === 'granted') {
         new Notification('💧 Critical Humidity!', {
-          body: `Humidity: ${data.humidity.toFixed(1)}% (Critical: >${thresholds.humidity.critical})`,
+          body: `Humidity: ${data.humidity.toFixed(1)}% (Critical: <${thresholds.humidity.critical})`,
           icon: '/icon.png',
         });
       }
@@ -95,11 +95,11 @@ export function useNotifications(sensorData: SensorData) {
         });
       }
 
-      if (data.humidity > thresholds.humidity.critical) {
+      if (data.humidity < thresholds.humidity.critical) {
         await Notifications.scheduleNotificationAsync({
           content: {
             title: '💧 Critical Humidity!',
-            body: `Humidity: ${data.humidity.toFixed(1)}% (Critical: >${thresholds.humidity.critical})`,
+            body: `Humidity: ${data.humidity.toFixed(1)}% (Critical: <${thresholds.humidity.critical})`,
             sound: soundEnabled ? 'default' : false,
           },
           trigger: null,

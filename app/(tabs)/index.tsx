@@ -34,9 +34,18 @@ export default function Dashboard() {
     type: 'temperature' | 'humidity' | 'gas'
   ): SensorStatus => {
     const threshold = thresholds[type];
-    if (value >= threshold.critical) return 'critical';
-    if (value >= threshold.warning) return 'warning';
-    return 'normal';
+
+    if (type === 'humidity') {
+      // Logika terbalik untuk kelembapan: nilai lebih rendah lebih buruk
+      if (value < threshold.critical) return 'critical';
+      if (value < threshold.warning) return 'warning';
+      return 'normal';
+    } else {
+      // Logika standar untuk suhu dan gas: nilai lebih tinggi lebih buruk
+      if (value >= threshold.critical) return 'critical';
+      if (value >= threshold.warning) return 'warning';
+      return 'normal';
+    }
   };
 
   return (
@@ -92,62 +101,8 @@ export default function Dashboard() {
             />
           </View>
 
-          {/* Live Thresholds Info */}
-          <View style={styles.thresholdsCard}>
-            <Text style={styles.thresholdsTitle}>Current Sensor Thresholds</Text>
-            
-            <View style={styles.thresholdRow}>
-              <Text style={styles.thresholdLabel}>Temperature:</Text>
-              <Text style={styles.thresholdValue}>
-                Warning: {thresholds.temperature.warning}°C | 
-                Critical: {thresholds.temperature.critical}°C
-              </Text>
-            </View>
-            
-            <View style={styles.thresholdRow}>
-              <Text style={styles.thresholdLabel}>Humidity:</Text>
-              <Text style={styles.thresholdValue}>
-                Warning: {thresholds.humidity.warning}% | 
-                Critical: {thresholds.humidity.critical}%
-              </Text>
-            </View>
-            
-            <View style={styles.thresholdRow}>
-              <Text style={styles.thresholdLabel}>Gas:</Text>
-              <Text style={styles.thresholdValue}>
-                Warning: {thresholds.gas.warning} PPM | 
-                Critical: {thresholds.gas.critical} PPM
-              </Text>
-            </View>
-
-            {/* Live Status Indicators */}
-            <View style={styles.statusIndicators}>
-              <Text style={styles.statusTitle}>Current Status:</Text>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: getSensorStatus(sensorData.temperature, 'temperature') === 'normal' ? '#22c55e' : getSensorStatus(sensorData.temperature, 'temperature') === 'warning' ? '#f59e0b' : '#ef4444' }]} />
-                <Text style={styles.statusText}>Temperature: {getSensorStatus(sensorData.temperature, 'temperature').toUpperCase()}</Text>
-              </View>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: getSensorStatus(sensorData.humidity, 'humidity') === 'normal' ? '#22c55e' : getSensorStatus(sensorData.humidity, 'humidity') === 'warning' ? '#f59e0b' : '#ef4444' }]} />
-                <Text style={styles.statusText}>Humidity: {getSensorStatus(sensorData.humidity, 'humidity').toUpperCase()}</Text>
-              </View>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: getSensorStatus(sensorData.gas, 'gas') === 'normal' ? '#22c55e' : getSensorStatus(sensorData.gas, 'gas') === 'warning' ? '#f59e0b' : '#ef4444' }]} />
-                <Text style={styles.statusText}>Gas: {getSensorStatus(sensorData.gas, 'gas').toUpperCase()}</Text>
-              </View>
-            </View>
-          </View>
         </ScrollView>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Last Update: {new Date(sensorData.timestamp).toLocaleTimeString()}
-          </Text>
-          <Text style={styles.footerSubtext}>
-            {connectionStatus.connected ? '🟢 Live Data' : '🔴 Offline Mode'}
-          </Text>
-        </View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -165,7 +120,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 20,
   },
   headerLeft: {

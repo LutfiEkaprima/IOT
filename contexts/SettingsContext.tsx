@@ -30,7 +30,7 @@ interface SettingsContextType {
 
 const defaultThresholds: SensorThresholds = {
   temperature: { warning: 35, critical: 50 },
-  humidity: { warning: 70, critical: 85 },
+  humidity: { warning: 60, critical: 30 },
   gas: { warning: 500, critical: 1000 },
 };
 

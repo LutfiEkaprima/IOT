@@ -26,6 +26,7 @@ import { useSettings } from '@/contexts/SettingsContext';
 interface ThresholdModalProps {
   visible: boolean;
   title: string;
+  type: 'temperature' | 'humidity' | 'gas';
   currentWarning: number;
   currentCritical: number;
   unit: string;
@@ -33,7 +34,7 @@ interface ThresholdModalProps {
   onSave: (warning: number, critical: number) => void;
 }
 
-function ThresholdModal({ visible, title, currentWarning, currentCritical, unit, onClose, onSave }: ThresholdModalProps) {
+function ThresholdModal({ visible, title, type, currentWarning, currentCritical, unit, onClose, onSave }: ThresholdModalProps) {
   const [warning, setWarning] = React.useState(currentWarning.toString());
   const [critical, setCritical] = React.useState(currentCritical.toString());
 
@@ -51,9 +52,16 @@ function ThresholdModal({ visible, title, currentWarning, currentCritical, unit,
       return;
     }
     
-    if (warningNum >= criticalNum) {
-      Alert.alert('Error', 'Warning threshold must be less than critical threshold');
-      return;
+    if (type === 'humidity') {
+      if (warningNum <= criticalNum) {
+        Alert.alert('Error', 'For humidity, the warning value must be greater than the critical value.');
+        return;
+      }
+    } else {
+      if (warningNum >= criticalNum) {
+        Alert.alert('Error', 'Warning threshold must be less than critical threshold');
+        return;
+      }
     }
     
     onSave(warningNum, criticalNum);
@@ -353,7 +361,7 @@ export default function Settings() {
             >
               <Text style={styles.settingButtonText}>Temperature Limits</Text>
               <Text style={styles.settingSubtext}>
-                Warning: {thresholds.temperature.warning}°C | Critical: {thresholds.temperature.critical}°C
+                Warning: {'>'}{thresholds.temperature.warning}°C | Critical: {'>'}{thresholds.temperature.critical}°C
               </Text>
             </TouchableOpacity>
             
@@ -363,7 +371,7 @@ export default function Settings() {
             >
               <Text style={styles.settingButtonText}>Humidity Limits</Text>
               <Text style={styles.settingSubtext}>
-                Warning: {thresholds.humidity.warning}% | Critical: {thresholds.humidity.critical}%
+                Warning: {'<'}{thresholds.humidity.warning}% | Critical: {'<'}{thresholds.humidity.critical}%
               </Text>
             </TouchableOpacity>
             
@@ -373,38 +381,8 @@ export default function Settings() {
             >
               <Text style={styles.settingButtonText}>Gas Limits</Text>
               <Text style={styles.settingSubtext}>
-                Warning: {thresholds.gas.warning} PPM | Critical: {thresholds.gas.critical} PPM
+                Warning: {'>'}{thresholds.gas.warning} PPM | Critical: {'>'}{thresholds.gas.critical} PPM
               </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* About */}
-          <View style={styles.settingsCard}>
-            <View style={styles.cardHeader}>
-              <Info size={24} color="#3b82f6" />
-              <Text style={styles.cardTitle}>About</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Version:</Text>
-              <Text style={styles.infoValue}>1.0.0</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Platform:</Text>
-              <Text style={styles.infoValue}>React Native + Expo</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>MQTT Protocol:</Text>
-              <Text style={styles.infoValue}>v3.1.1</Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.settingButton}
-              onPress={showAboutInfo}
-            >
-              <Text style={styles.settingButtonText}>View App Information</Text>
             </TouchableOpacity>
           </View>
 
@@ -431,6 +409,7 @@ export default function Settings() {
         <ThresholdModal
           visible={temperatureModalVisible}
           title="Temperature"
+          type="temperature"
           currentWarning={thresholds.temperature.warning}
           currentCritical={thresholds.temperature.critical}
           unit="°C"
@@ -441,6 +420,7 @@ export default function Settings() {
         <ThresholdModal
           visible={humidityModalVisible}
           title="Humidity"
+          type="humidity"
           currentWarning={thresholds.humidity.warning}
           currentCritical={thresholds.humidity.critical}
           unit="%"
@@ -451,6 +431,7 @@ export default function Settings() {
         <ThresholdModal
           visible={gasModalVisible}
           title="Gas"
+          type="gas"
           currentWarning={thresholds.gas.warning}
           currentCritical={thresholds.gas.critical}
           unit="PPM"
@@ -474,7 +455,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 20,
   },
   headerLeft: {
