@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { SensorData, ConnectionStatus } from '@/types/sensors';
+import 'react-native-url-polyfill/auto';
 // Gunakan default import untuk kompatibilitas yang lebih baik di React Native
 import mqtt from 'mqtt';
 
 // MQTT configuration
 const MQTT_CONFIG = {
   // Ganti protokol ke WebSocket dan gunakan port 8000
-  broker: 'ws://broker.hivemq.com:8000/mqtt', 
+  broker: 'wss://broker.hivemq.com:8884/mqtt', 
   topic: 'iot/project/lutfi/sensordata', // Ganti dengan topik Anda
 };
 
