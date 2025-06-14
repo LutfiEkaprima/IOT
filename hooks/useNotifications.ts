@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
 import { SensorData } from '@/types/sensors';
 import { useSettings } from '@/contexts/SettingsContext';
 
@@ -31,6 +32,22 @@ interface NotificationState {
   };
 }
 
+// Custom sound configuration
+const NOTIFICATION_SOUNDS = {
+  warning: {
+    native: 'notification_warning.wav', // Place in assets/sounds/
+    web: '/sounds/warning.mp3', // Place in public/sounds/
+  },
+  critical: {
+    native: 'alarm_critical.wav', // Place in assets/sounds/
+    web: '/sounds/critical-alarm.mp3', // Place in public/sounds/
+  },
+  recovery: {
+    native: 'notification_success.wav', // Place in assets/sounds/
+    web: '/sounds/success.mp3', // Place in public/sounds/
+  },
+};
+
 export function useNotifications(sensorData: SensorData) {
   const { thresholds, notificationsEnabled, soundEnabled } = useSettings();
   const notificationStateRef = useRef<NotificationState>({
@@ -52,6 +69,70 @@ export function useNotifications(sensorData: SensorData) {
   });
 
   const criticalAlarmIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<Audio.Sound | null>(null);
+
+  // Initialize audio system
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+    }
+  }, []);
+
+  // Helper function to play custom sound
+  const playCustomSound = async (soundType: 'warning' | 'critical' | 'recovery') => {
+    if (!soundEnabled) return;
+
+    try {
+      if (Platform.OS === 'web') {
+        // Web: Use HTML5 Audio API
+        const audio = new window.Audio(NOTIFICATION_SOUNDS[soundType].web);
+        audio.volume = soundType === 'critical' ? 1.0 : 0.7;
+        
+        if (soundType === 'critical') {
+          audio.loop = false; // Don't loop individual plays, we handle repetition
+        }
+        
+        await audio.play();
+      } else {
+        // Native: Use Expo Audio
+        if (audioRef.current) {
+          await audioRef.current.unloadAsync();
+        }
+
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: NOTIFICATION_SOUNDS[soundType].native },
+          {
+            shouldPlay: true,
+            volume: soundType === 'critical' ? 1.0 : 0.7,
+            isLooping: false,
+          }
+        );
+        
+        audioRef.current = sound;
+        await sound.playAsync();
+      }
+    } catch (error) {
+      console.error(`Failed to play ${soundType} sound:`, error);
+      // Fallback to system sound
+      if (Platform.OS !== 'web') {
+        // Use system notification sound as fallback
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Sound Test',
+            body: 'Fallback sound',
+            sound: 'default',
+          },
+          trigger: null,
+        });
+      }
+    }
+  };
 
   // Helper function to determine sensor status
   const getSensorStatus = (
@@ -147,6 +228,9 @@ export function useNotifications(sensorData: SensorData) {
         break;
     }
 
+    // Play custom critical alarm sound
+    await playCustomSound('critical');
+
     if (Platform.OS === 'web') {
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, {
@@ -154,6 +238,7 @@ export function useNotifications(sensorData: SensorData) {
           icon: '/icon.png',
           tag: `critical-${type}`, // This replaces previous notifications of the same type
           requireInteraction: true, // Keep notification visible until user interacts
+          silent: true, // We handle sound manually
         });
       }
     } else {
@@ -162,7 +247,7 @@ export function useNotifications(sensorData: SensorData) {
           content: {
             title,
             body,
-            sound: soundEnabled ? 'default' : false,
+            sound: false, // We handle sound manually
             priority: Notifications.AndroidNotificationPriority.MAX,
             categoryIdentifier: 'critical-alarm',
           },
@@ -199,12 +284,16 @@ export function useNotifications(sensorData: SensorData) {
         break;
     }
 
+    // Play custom warning sound
+    await playCustomSound('warning');
+
     if (Platform.OS === 'web') {
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, {
           body,
           icon: '/icon.png',
           tag: `warning-${type}`,
+          silent: true, // We handle sound manually
         });
       }
     } else {
@@ -213,7 +302,7 @@ export function useNotifications(sensorData: SensorData) {
           content: {
             title,
             body,
-            sound: soundEnabled ? 'default' : false,
+            sound: false, // We handle sound manually
             priority: Notifications.AndroidNotificationPriority.HIGH,
           },
           trigger: null,
@@ -245,12 +334,16 @@ export function useNotifications(sensorData: SensorData) {
         break;
     }
 
+    // Play custom recovery sound
+    await playCustomSound('recovery');
+
     if (Platform.OS === 'web') {
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, {
           body,
           icon: '/icon.png',
           tag: `recovery-${type}`,
+          silent: true, // We handle sound manually
         });
       }
     } else {
@@ -259,7 +352,7 @@ export function useNotifications(sensorData: SensorData) {
           content: {
             title,
             body,
-            sound: false, // No sound for recovery notifications
+            sound: false, // We handle sound manually
             priority: Notifications.AndroidNotificationPriority.DEFAULT,
           },
           trigger: null,
@@ -347,6 +440,9 @@ export function useNotifications(sensorData: SensorData) {
   useEffect(() => {
     return () => {
       clearCriticalAlarm();
+      if (audioRef.current) {
+        audioRef.current.unloadAsync();
+      }
     };
   }, []);
 }
