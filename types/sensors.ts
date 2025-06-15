@@ -5,8 +5,12 @@ export interface SensorData {
   timestamp: number;
 }
 
+// Ubah tipe ConnectionStatus
+export type ConnectionStateType = 'connected' | 'connecting' | 'disconnected';
+
 export interface ConnectionStatus {
-  connected: boolean;
+  // Ganti 'connected: boolean' dengan 'state: ConnectionStateType'
+  state: ConnectionStateType;
   uptime: number;
   lastUpdate: number;
 }

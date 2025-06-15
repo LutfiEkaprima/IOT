@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Wifi, WifiOff, Clock } from 'lucide-react-native';
+// Impor tipe baru
 import { ConnectionStatus } from '@/types/sensors';
 
 interface ConnectionStatusProps {
@@ -8,7 +9,9 @@ interface ConnectionStatusProps {
 }
 
 export function ConnectionStatusComponent({ status }: ConnectionStatusProps) {
+  // ... (fungsi formatUptime dan getLastUpdateText tidak perlu diubah)
   const formatUptime = (seconds: number) => {
+    // ... implementasi yang ada
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -32,23 +35,47 @@ export function ConnectionStatusComponent({ status }: ConnectionStatusProps) {
     return `${hours}h ago`;
   };
 
+
+  // --- AWAL PERUBAHAN ---
+  const getStatusDetails = () => {
+    switch (status.state) {
+      case 'connected':
+        return {
+          icon: <Wifi size={18} color="#22c55e" />,
+          text: 'Connected',
+          color: '#22c55e',
+        };
+      case 'connecting':
+        return {
+          // Menggunakan ikon Wifi berwarna kuning
+          icon: <Wifi size={18} color="#f59e0b" />, 
+          text: 'Connecting...',
+          color: '#f59e0b', // Kuning
+        };
+      case 'disconnected':
+      default:
+        return {
+          icon: <WifiOff size={18} color="#ef4444" />,
+          text: 'Disconnected',
+          color: '#ef4444',
+        };
+    }
+  };
+
+  const { icon, text, color } = getStatusDetails();
+  // --- AKHIR PERUBAHAN ---
+
   return (
     <View style={styles.container}>
       <View style={styles.connectionRow}>
-        {status.connected ? (
-          <Wifi size={18} color="#22c55e" />
-        ) : (
-          <WifiOff size={18} color="#ef4444" />
-        )}
-        <Text style={[
-          styles.connectionText,
-          { color: status.connected ? '#22c55e' : '#ef4444' }
-        ]}>
-          {status.connected ? 'Connected' : 'Offline'}
+        {icon}
+        <Text style={[styles.connectionText, { color }]}>
+          {text}
         </Text>
       </View>
       
-      {status.connected && (
+      {/* Tampilkan uptime hanya jika terhubung */}
+      {status.state === 'connected' && (
         <View style={styles.uptimeRow}>
           <Clock size={16} color="#6b7280" />
           <Text style={styles.uptimeText}>
@@ -57,9 +84,12 @@ export function ConnectionStatusComponent({ status }: ConnectionStatusProps) {
         </View>
       )}
       
-      <Text style={styles.lastUpdate}>
-        Updated: {getLastUpdateText()}
-      </Text>
+      {/* Tampilkan waktu pembaruan terakhir jika tidak disconnected */}
+      {status.state !== 'disconnected' && (
+        <Text style={styles.lastUpdate}>
+          Updated: {getLastUpdateText()}
+        </Text>
+      )}
     </View>
   );
 }
