@@ -5,6 +5,8 @@ import { Audio } from 'expo-av';
 import { SensorData } from '@/types/sensors';
 import { useSettings } from '@/contexts/SettingsContext';
 
+const alarmSoundAsset = require('../assets/sounds/alarm.wav');
+
 interface AlarmState {
   isActive: boolean;
   criticalSensors: string[];
@@ -13,7 +15,14 @@ interface AlarmState {
 }
 
 export function useAlarmSystem(sensorData: SensorData) {
-  const { thresholds, notificationsEnabled, soundEnabled } = useSettings();
+  const { 
+    thresholds, 
+    notificationsEnabled, 
+    soundEnabled, 
+    vibrationEnabled, 
+    persistentNotifications 
+  } = useSettings();
+  
   const [alarmState, setAlarmState] = useState<AlarmState>({
     isActive: false,
     criticalSensors: [],
@@ -52,7 +61,8 @@ export function useAlarmSystem(sensorData: SensorData) {
     return critical;
   };
 
-  // Load and play alarm sound
+  // --- AWAL PERUBAHAN ---
+  // Muat dan putar suara alarm dari aset lokal
   const playAlarmSound = async () => {
     if (!soundEnabled || Platform.OS === 'web') return;
 
@@ -61,16 +71,32 @@ export function useAlarmSystem(sensorData: SensorData) {
         await soundRef.current.unloadAsync();
       }
 
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        interruptionModeIOS: 1, // DoNotMix
+        shouldDuckAndroid: false,
+        interruptionModeAndroid: 1, // DoNotMix
+        playThroughEarpieceAndroid: false,
+      });
+
+      // Gunakan aset yang sudah diimpor
       const { sound } = await Audio.Sound.createAsync(
-        { uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav' },
-        { shouldPlay: true, isLooping: true, volume: 1.0 }
+         alarmSoundAsset, 
+        { 
+          shouldPlay: true, 
+          isLooping: true, // <--- Properti ini yang membuat suara berulang
+          volume: 1.0 
+        }
       );
       
       soundRef.current = sound;
     } catch (error) {
-      console.error('Failed to play alarm sound:', error);
+      console.error('Gagal memutar suara alarm:', error);
     }
   };
+  // --- AKHIR PERUBAHAN ---
 
   // Stop alarm sound
   const stopAlarmSound = async () => {
@@ -87,9 +113,9 @@ export function useAlarmSystem(sensorData: SensorData) {
 
   // Trigger vibration (mobile only)
   const triggerVibration = () => {
-    if (Platform.OS !== 'web') {
-      // Vibrate in pattern: 1 second on, 0.5 second off, repeat
-      Vibration.vibrate([1000, 500], true);
+    if (Platform.OS !== 'web' && vibrationEnabled) {
+      // Pola getaran: 1 detik nyala, 0.5 detik mati, berulang
+      Vibration.vibrate([1000, 500, 1000, 500], true);
     }
   };
 
@@ -106,46 +132,31 @@ export function useAlarmSystem(sensorData: SensorData) {
 
     const sensorNames = criticalSensors.map(sensor => {
       switch (sensor) {
-        case 'temperature': return `Temperature: ${sensorData.temperature.toFixed(1)}°C`;
-        case 'humidity': return `Humidity: ${sensorData.humidity.toFixed(1)}%`;
+        case 'temperature': return `Suhu: ${sensorData.temperature.toFixed(1)}°C`;
+        case 'humidity': return `Kelembapan: ${sensorData.humidity.toFixed(1)}%`;
         case 'gas': return `Gas: ${sensorData.gas.toFixed(1)} PPM`;
         default: return sensor;
       }
     }).join(', ');
 
-    const title = '🚨 CRITICAL ALARM ACTIVE!';
-    const body = `Critical levels detected: ${sensorNames}`;
+    const title = '🚨 ALARM KRITIS AKTIF!';
+    const body = `Level kritis terdeteksi: ${sensorNames}`;
 
-    if (Platform.OS === 'web') {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const notification = new Notification(title, {
-          body,
-          icon: '/icon.png',
-          tag: 'critical-alarm',
-          requireInteraction: true,
-          silent: false,
-        });
-
-        // Auto-close notification after 10 seconds if user doesn't interact
-        setTimeout(() => {
-          notification.close();
-        }, 10000);
-      }
-    } else {
+    if (Platform.OS !== 'web') {
       try {
         await Notifications.scheduleNotificationAsync({
           content: {
             title,
             body,
-            sound: soundEnabled ? 'default' : false,
+            sound: true, // Pastikan notifikasi mengeluarkan suara
             priority: Notifications.AndroidNotificationPriority.MAX,
-            categoryIdentifier: 'critical-alarm',
+            vibrate: [0, 250, 250, 250], // Tambahkan pola getar pada notifikasi
             data: { type: 'critical-alarm', sensors: criticalSensors },
           },
           trigger: null,
         });
       } catch (error) {
-        console.error('Failed to send critical alarm notification:', error);
+        console.error('Gagal mengirim notifikasi alarm kritis:', error);
       }
     }
   };
@@ -154,7 +165,7 @@ export function useAlarmSystem(sensorData: SensorData) {
   const startAlarm = (criticalSensors: string[]) => {
     if (alarmState.isActive) return;
 
-    console.log('🚨 CRITICAL ALARM STARTED:', criticalSensors);
+    console.log('🚨 ALARM KRITIS DIMULAI:', criticalSensors);
 
     setAlarmState({
       isActive: true,
@@ -163,29 +174,24 @@ export function useAlarmSystem(sensorData: SensorData) {
       lastNotificationTime: Date.now(),
     });
 
-    // Play sound and vibration
     playAlarmSound();
     triggerVibration();
-
-    // Send immediate notification
     sendCriticalAlarmNotification(criticalSensors);
 
-    // Set up recurring alarm notifications every 30 seconds
-    alarmIntervalRef.current = setInterval(() => {
-      const currentCritical = getCriticalSensors();
-      
-      if (currentCritical.length > 0) {
-        sendCriticalAlarmNotification(currentCritical);
-        setAlarmState(prev => ({
-          ...prev,
-          criticalSensors: currentCritical,
-          lastNotificationTime: Date.now(),
-        }));
-      } else {
-        // No more critical sensors, stop alarm
-        stopAlarm();
-      }
-    }, 30000); // Every 30 seconds
+    // Hapus interval yang sudah ada jika ada
+    if (alarmIntervalRef.current) {
+        clearInterval(alarmIntervalRef.current);
+    }
+
+    // Kirim notifikasi berulang jika diaktifkan
+    if (persistentNotifications) {
+      alarmIntervalRef.current = setInterval(() => {
+        const currentCritical = getCriticalSensors();
+        if (currentCritical.length > 0) {
+          sendCriticalAlarmNotification(currentCritical);
+        }
+      }, 30000); // Setiap 30 detik
+    }
   };
 
   // Stop alarm system
