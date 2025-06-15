@@ -277,13 +277,13 @@ export function useAlarmSystem(sensorData: SensorData) {
     }
 
     // Cleanup on unmount
-    return () => {
-      if (alarmIntervalRef.current) {
-        clearInterval(alarmIntervalRef.current);
-      }
-      stopAlarmSound();
-      stopVibration();
-    };
+    // return () => {
+    //   if (alarmIntervalRef.current) {
+    //     clearInterval(alarmIntervalRef.current);
+    //   }
+    //   stopAlarmSound();
+    //   stopVibration();
+    // };
   }, [sensorData, thresholds]);
 
   // Cleanup on unmount
