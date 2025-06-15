@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { AlertTriangle, X, Clock } from 'lucide-react-native';
+import { TriangleAlert as AlertTriangle, X, Clock } from 'lucide-react-native';
 
 interface AlarmIndicatorProps {
   isActive: boolean;
