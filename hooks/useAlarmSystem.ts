@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Platform, Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { Audio } from 'expo-av';
+import { Audio, AVPlaybackStatus } from 'expo-av';
 import { SensorData } from '@/types/sensors';
 import { useSettings } from '@/contexts/SettingsContext';
 
@@ -15,14 +15,14 @@ interface AlarmState {
 }
 
 export function useAlarmSystem(sensorData: SensorData) {
-  const { 
-    thresholds, 
-    notificationsEnabled, 
-    soundEnabled, 
-    vibrationEnabled, 
-    persistentNotifications 
+  const {
+    thresholds,
+    notificationsEnabled,
+    soundEnabled,
+    vibrationEnabled,
+    persistentNotifications,
   } = useSettings();
-  
+
   const [alarmState, setAlarmState] = useState<AlarmState>({
     isActive: false,
     criticalSensors: [],
@@ -34,9 +34,12 @@ export function useAlarmSystem(sensorData: SensorData) {
   const soundRef = useRef<Audio.Sound | null>(null);
 
   // Helper function to determine if sensor is in critical state
-  const isCritical = (value: number, type: 'temperature' | 'humidity' | 'gas'): boolean => {
+  const isCritical = (
+    value: number,
+    type: 'temperature' | 'humidity' | 'gas'
+  ): boolean => {
     const threshold = thresholds[type];
-    
+
     if (type === 'humidity') {
       return value < threshold.critical;
     } else {
@@ -47,7 +50,7 @@ export function useAlarmSystem(sensorData: SensorData) {
   // Get all critical sensors
   const getCriticalSensors = (): string[] => {
     const critical: string[] = [];
-    
+
     if (isCritical(sensorData.temperature, 'temperature')) {
       critical.push('temperature');
     }
@@ -57,7 +60,7 @@ export function useAlarmSystem(sensorData: SensorData) {
     if (isCritical(sensorData.gas, 'gas')) {
       critical.push('gas');
     }
-    
+
     return critical;
   };
 
@@ -67,6 +70,7 @@ export function useAlarmSystem(sensorData: SensorData) {
     if (!soundEnabled || Platform.OS === 'web') return;
 
     try {
+      // Hentikan dan hapus suara yang mungkin sedang berjalan
       if (soundRef.current) {
         await soundRef.current.unloadAsync();
       }
@@ -81,17 +85,19 @@ export function useAlarmSystem(sensorData: SensorData) {
         playThroughEarpieceAndroid: false,
       });
 
-      // Gunakan aset yang sudah diimpor
-      const { sound } = await Audio.Sound.createAsync(
-         alarmSoundAsset, 
-        { 
-          shouldPlay: true, 
-          isLooping: true, // <--- Properti ini yang membuat suara berulang
-          volume: 1.0 
-        }
-      );
-      
+      // Buat objek suara baru
+      const { sound } = await Audio.Sound.createAsync(alarmSoundAsset);
       soundRef.current = sound;
+
+      // Atur listener untuk memutar ulang audio secara manual saat selesai
+      sound.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+        if (status.isLoaded && status.didJustFinish) {
+          soundRef.current?.replayAsync();
+        }
+      });
+
+      // Mulai putar audio
+      await sound.playAsync();
     } catch (error) {
       console.error('Gagal memutar suara alarm:', error);
     }
@@ -102,6 +108,8 @@ export function useAlarmSystem(sensorData: SensorData) {
   const stopAlarmSound = async () => {
     if (soundRef.current) {
       try {
+        // Hapus listener agar audio tidak berputar lagi
+        soundRef.current.setOnPlaybackStatusUpdate(null);
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
         soundRef.current = null;
@@ -130,14 +138,20 @@ export function useAlarmSystem(sensorData: SensorData) {
   const sendCriticalAlarmNotification = async (criticalSensors: string[]) => {
     if (!notificationsEnabled) return;
 
-    const sensorNames = criticalSensors.map(sensor => {
-      switch (sensor) {
-        case 'temperature': return `Suhu: ${sensorData.temperature.toFixed(1)}°C`;
-        case 'humidity': return `Kelembapan: ${sensorData.humidity.toFixed(1)}%`;
-        case 'gas': return `Gas: ${sensorData.gas.toFixed(1)} PPM`;
-        default: return sensor;
-      }
-    }).join(', ');
+    const sensorNames = criticalSensors
+      .map((sensor) => {
+        switch (sensor) {
+          case 'temperature':
+            return `Suhu: ${sensorData.temperature.toFixed(1)}°C`;
+          case 'humidity':
+            return `Kelembapan: ${sensorData.humidity.toFixed(1)}%`;
+          case 'gas':
+            return `Gas: ${sensorData.gas.toFixed(1)} PPM`;
+          default:
+            return sensor;
+        }
+      })
+      .join(', ');
 
     const title = '🚨 ALARM KRITIS AKTIF!';
     const body = `Level kritis terdeteksi: ${sensorNames}`;
@@ -180,7 +194,7 @@ export function useAlarmSystem(sensorData: SensorData) {
 
     // Hapus interval yang sudah ada jika ada
     if (alarmIntervalRef.current) {
-        clearInterval(alarmIntervalRef.current);
+      clearInterval(alarmIntervalRef.current);
     }
 
     // Kirim notifikasi berulang jika diaktifkan
@@ -247,13 +261,13 @@ export function useAlarmSystem(sensorData: SensorData) {
   // Main effect to monitor sensor data
   useEffect(() => {
     const criticalSensors = getCriticalSensors();
-    
+
     if (criticalSensors.length > 0) {
       if (!alarmState.isActive) {
         startAlarm(criticalSensors);
       } else {
         // Update critical sensors list
-        setAlarmState(prev => ({
+        setAlarmState((prev) => ({
           ...prev,
           criticalSensors,
         }));
@@ -284,7 +298,7 @@ export function useAlarmSystem(sensorData: SensorData) {
     stopAlarm: () => stopAlarm(),
     isAlarmActive: alarmState.isActive,
     criticalSensors: alarmState.criticalSensors,
-    alarmDuration: alarmState.alarmStartTime 
+    alarmDuration: alarmState.alarmStartTime
       ? Math.floor((Date.now() - alarmState.alarmStartTime) / 1000)
       : 0,
   };
