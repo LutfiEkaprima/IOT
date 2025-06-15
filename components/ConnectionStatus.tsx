@@ -44,16 +44,18 @@ export function ConnectionStatusComponent({ status }: ConnectionStatusProps) {
           styles.connectionText,
           { color: status.connected ? '#22c55e' : '#ef4444' }
         ]}>
-          {status.connected ? 'Connected' : 'Disconnected'}
+          {status.connected ? 'Connected' : 'Offline'}
         </Text>
       </View>
       
-      <View style={styles.uptimeRow}>
-        <Clock size={16} color="#6b7280" />
-        <Text style={styles.uptimeText}>
-          {formatUptime(status.uptime)}
-        </Text>
-      </View>
+      {status.connected && (
+        <View style={styles.uptimeRow}>
+          <Clock size={16} color="#6b7280" />
+          <Text style={styles.uptimeText}>
+            {formatUptime(status.uptime)}
+          </Text>
+        </View>
+      )}
       
       <Text style={styles.lastUpdate}>
         Updated: {getLastUpdateText()}
