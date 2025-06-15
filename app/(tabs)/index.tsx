@@ -10,15 +10,23 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SensorCard } from '@/components/SensorCard';
 import { ConnectionStatusComponent } from '@/components/ConnectionStatus';
+import { AlarmIndicator } from '@/components/AlarmIndicator';
 import { useMQTT } from '@/hooks/useMQTT';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useAlarmSystem } from '@/hooks/useAlarmSystem';
 import { useSettings } from '@/contexts/SettingsContext';
 import { SensorStatus } from '@/types/sensors';
 
 export default function Dashboard() {
   const { sensorData, connectionStatus } = useMQTT();
   const { thresholds } = useSettings();
-  useNotifications(sensorData);
+  const { 
+    alarmState, 
+    stopAlarm, 
+    isAlarmActive, 
+    criticalSensors, 
+    alarmDuration 
+  } = useAlarmSystem(sensorData);
+  
   const [refreshing, setRefreshing] = React.useState(false);
 
   const onRefresh = React.useCallback(() => {
@@ -63,6 +71,16 @@ export default function Dashboard() {
           <ConnectionStatusComponent status={connectionStatus} />
         </View>
 
+        {/* Critical Alarm Indicator */}
+        {isAlarmActive && (
+          <AlarmIndicator
+            isActive={isAlarmActive}
+            criticalSensors={criticalSensors}
+            alarmDuration={alarmDuration}
+            onDismiss={stopAlarm}
+          />
+        )}
+
         {/* Body */}
         <ScrollView
           style={styles.content}
@@ -100,6 +118,22 @@ export default function Dashboard() {
               status={getSensorStatus(sensorData.gas, 'gas')}
             />
           </View>
+
+          {/* Alarm Status Info */}
+          {isAlarmActive && (
+            <View style={styles.alarmStatusCard}>
+              <Text style={styles.alarmStatusTitle}>🚨 Critical Alarm Active</Text>
+              <Text style={styles.alarmStatusText}>
+                Duration: {Math.floor(alarmDuration / 60)}:{(alarmDuration % 60).toString().padStart(2, '0')}
+              </Text>
+              <Text style={styles.alarmStatusText}>
+                Critical Sensors: {criticalSensors.join(', ')}
+              </Text>
+              <Text style={styles.alarmStatusSubtext}>
+                The alarm will automatically stop when all sensors return to safe levels.
+              </Text>
+            </View>
+          )}
 
         </ScrollView>
 
@@ -143,74 +177,29 @@ const styles = StyleSheet.create({
   sensorsGrid: {
     marginBottom: 20,
   },
-  thresholdsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  alarmStatusCard: {
+    backgroundColor: 'rgba(220, 38, 38, 0.9)',
     borderRadius: 16,
     padding: 20,
     margin: 8,
     marginBottom: 20,
   },
-  thresholdsTitle: {
+  alarmStatusTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  thresholdRow: {
+    fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 8,
   },
-  thresholdLabel: {
+  alarmStatusText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 2,
-  },
-  thresholdValue: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  statusIndicators: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  statusTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    color: '#6b7280',
+    color: '#fff',
+    marginBottom: 4,
     fontWeight: '500',
   },
-  footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-  },
-  footerText: {
+  alarmStatusSubtext: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 4,
-  },
-  footerSubtext: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });
