@@ -15,8 +15,8 @@ const MQTT_CONFIG = {
 export function useMQTT() {
   const [sensorData, setSensorData] = useState<SensorData>({
     temperature: 25,
-    humidity: 45,
-    gas: 200,
+    humidity: 100,
+    gas: 0,
     timestamp: Date.now(),
   });
 
