@@ -22,6 +22,7 @@ import {
   Save
 } from 'lucide-react-native';
 import { useSettings } from '@/contexts/SettingsContext';
+import { AlarmSettings } from '@/components/AlarmSettings';
 
 interface ThresholdModalProps {
   visible: boolean;
@@ -199,6 +200,10 @@ export default function Settings() {
     setAutoRefresh,
     soundEnabled,
     setSoundEnabled,
+    vibrationEnabled,
+    setVibrationEnabled,
+    persistentNotifications,
+    setPersistentNotifications,
     thresholds,
     updateThreshold,
     mqttConfig,
@@ -229,14 +234,6 @@ export default function Settings() {
     );
   };
 
-  const handleSoundToggle = (value: boolean) => {
-    setSoundEnabled(value);
-    Alert.alert(
-      value ? 'Sound Alerts Enabled' : 'Sound Alerts Disabled',
-      value ? 'Critical alerts will play sound' : 'Critical alerts will be silent'
-    );
-  };
-
   const handleMQTTSave = (broker: string, topic: string) => {
     setMqttConfig({ broker, topic });
     Alert.alert('MQTT Configuration Saved', `Broker: ${broker}\nTopic: ${topic}\n\nChanges will take effect on next app restart.`);
@@ -245,14 +242,6 @@ export default function Settings() {
   const handleThresholdSave = (type: 'temperature' | 'humidity' | 'gas', warning: number, critical: number) => {
     updateThreshold(type, warning, critical);
     Alert.alert('Thresholds Updated', `${type} thresholds have been saved and are now active in the dashboard!`);
-  };
-
-  const showAboutInfo = () => {
-    Alert.alert(
-      'About IoT Dashboard',
-      'This app monitors ESP32 sensor data in real-time using MQTT protocol.\n\nFeatures:\n• Real-time sensor monitoring\n• Critical threshold alerts\n• MQTT connectivity\n• Customizable thresholds\n• Live dashboard sync\n\nDeveloped with React Native & Expo',
-      [{ text: 'OK' }]
-    );
   };
 
   const handleResetToDefaults = () => {
@@ -293,6 +282,16 @@ export default function Settings() {
           style={styles.content}
           showsVerticalScrollIndicator={false}
         >
+          {/* Critical Alarm Settings */}
+          <AlarmSettings
+            soundEnabled={soundEnabled}
+            setSoundEnabled={setSoundEnabled}
+            vibrationEnabled={vibrationEnabled}
+            setVibrationEnabled={setVibrationEnabled}
+            persistentNotifications={persistentNotifications}
+            setPersistentNotifications={setPersistentNotifications}
+          />
+
           {/* Notifications Settings */}
           <View style={styles.settingsCard}>
             <View style={styles.cardHeader}>
@@ -307,16 +306,6 @@ export default function Settings() {
                 onValueChange={handleNotificationToggle}
                 trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
                 thumbColor={notificationsEnabled ? '#fff' : '#f4f3f4'}
-              />
-            </View>
-            
-            <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Sound Alerts</Text>
-              <Switch
-                value={soundEnabled}
-                onValueChange={handleSoundToggle}
-                trackColor={{ false: '#d1d5db', true: '#3b82f6' }}
-                thumbColor={soundEnabled ? '#fff' : '#f4f3f4'}
               />
             </View>
           </View>
@@ -353,7 +342,7 @@ export default function Settings() {
               <Thermometer size={24} color="#3b82f6" />
               <Text style={styles.cardTitle}>Sensor Thresholds</Text>
             </View>
-            <Text style={styles.cardSubtitle}>Changes apply immediately to dashboard</Text>
+            <Text style={styles.cardSubtitle}>Changes apply immediately to dashboard and alarms</Text>
             
             <TouchableOpacity 
               style={styles.settingButton}
@@ -539,20 +528,6 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontWeight: '500',
     textAlign: 'center',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
   },
   // Modal styles
   modalOverlay: {

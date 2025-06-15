@@ -3,9 +3,11 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { SettingsProvider } from '@/contexts/SettingsContext';
+import { useNotificationPermissions } from '@/hooks/useNotificationPermissions'; // Impor hook baru
 
 export default function RootLayout() {
   useFrameworkReady();
+  useNotificationPermissions(); // Gunakan hook di sini
 
   return (
     <SettingsProvider>

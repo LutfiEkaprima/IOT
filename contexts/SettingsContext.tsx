@@ -12,6 +12,13 @@ interface SettingsContextType {
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
   
+  // Alarm settings
+  vibrationEnabled: boolean;
+  setVibrationEnabled: (enabled: boolean) => void;
+  
+  persistentNotifications: boolean;
+  setPersistentNotifications: (enabled: boolean) => void;
+  
   // Threshold settings
   thresholds: SensorThresholds;
   setThresholds: (thresholds: SensorThresholds) => void;
@@ -49,6 +56,8 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [persistentNotifications, setPersistentNotifications] = useState(true);
   const [thresholds, setThresholds] = useState<SensorThresholds>(defaultThresholds);
   const [mqttConfig, setMqttConfig] = useState(defaultMqttConfig);
 
@@ -63,6 +72,8 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     setNotificationsEnabled(true);
     setAutoRefresh(true);
     setSoundEnabled(true);
+    setVibrationEnabled(true);
+    setPersistentNotifications(true);
     setThresholds(defaultThresholds);
     setMqttConfig(defaultMqttConfig);
   };
@@ -74,6 +85,10 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     setAutoRefresh,
     soundEnabled,
     setSoundEnabled,
+    vibrationEnabled,
+    setVibrationEnabled,
+    persistentNotifications,
+    setPersistentNotifications,
     thresholds,
     setThresholds,
     updateThreshold,
