@@ -91,7 +91,8 @@ export function AlarmSettings({
           • Continuous sound and vibration alerts{'\n'}
           • Repeated notifications every 30 seconds{'\n'}
           • Automatically stops when all sensors return to safe levels{'\n'}
-          • Can be manually dismissed from the alarm banner
+          • Can be manually dismissed from the alarm banner{'\n'}
+          • All settings are automatically saved to your device
         </Text>
       </View>
     </View>

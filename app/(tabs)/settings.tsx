@@ -19,7 +19,8 @@ import {
   Settings as SettingsIcon,
   Info,
   X,
-  Save
+  Save,
+  Database
 } from 'lucide-react-native';
 import { useSettings } from '@/contexts/SettingsContext';
 import { AlarmSettings } from '@/components/AlarmSettings';
@@ -220,9 +221,9 @@ export default function Settings() {
   const handleNotificationToggle = (value: boolean) => {
     setNotificationsEnabled(value);
     if (value) {
-      Alert.alert('Notifications Enabled', 'You will receive alerts for critical sensor readings');
+      Alert.alert('Notifications Enabled', 'You will receive alerts for critical sensor readings. Settings saved to device.');
     } else {
-      Alert.alert('Notifications Disabled', 'You will not receive sensor alerts');
+      Alert.alert('Notifications Disabled', 'You will not receive sensor alerts. Settings saved to device.');
     }
   };
 
@@ -230,24 +231,24 @@ export default function Settings() {
     setAutoRefresh(value);
     Alert.alert(
       value ? 'Auto Refresh Enabled' : 'Auto Refresh Disabled',
-      value ? 'Sensor data will update automatically' : 'You will need to manually refresh sensor data'
+      value ? 'Sensor data will update automatically. Settings saved to device.' : 'You will need to manually refresh sensor data. Settings saved to device.'
     );
   };
 
   const handleMQTTSave = (broker: string, topic: string) => {
     setMqttConfig({ broker, topic });
-    Alert.alert('MQTT Configuration Saved', `Broker: ${broker}\nTopic: ${topic}\n\nChanges will take effect on next app restart.`);
+    Alert.alert('MQTT Configuration Saved', `Broker: ${broker}\nTopic: ${topic}\n\nSettings saved to device. Changes will take effect on next app restart.`);
   };
 
   const handleThresholdSave = (type: 'temperature' | 'humidity' | 'gas', warning: number, critical: number) => {
     updateThreshold(type, warning, critical);
-    Alert.alert('Thresholds Updated', `${type} thresholds have been saved and are now active in the dashboard!`);
+    Alert.alert('Thresholds Updated', `${type} thresholds have been saved to device and are now active in the dashboard!`);
   };
 
   const handleResetToDefaults = () => {
     Alert.alert(
       'Reset Settings',
-      'Are you sure you want to reset all settings to default values? This will immediately affect the dashboard.',
+      'Are you sure you want to reset all settings to default values? This will clear all saved settings from your device and immediately affect the dashboard.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -255,7 +256,7 @@ export default function Settings() {
           style: 'destructive',
           onPress: () => {
             resetToDefaults();
-            Alert.alert('Settings Reset', 'All settings have been reset to default values and are now active!');
+            Alert.alert('Settings Reset', 'All settings have been reset to default values, cleared from device storage, and are now active!');
           }
         }
       ]
@@ -282,6 +283,17 @@ export default function Settings() {
           style={styles.content}
           showsVerticalScrollIndicator={false}
         >
+          {/* Storage Info */}
+          <View style={styles.settingsCard}>
+            <View style={styles.cardHeader}>
+              <Database size={24} color="#10b981" />
+              <Text style={styles.cardTitle}>Local Storage</Text>
+            </View>
+            <Text style={styles.storageInfo}>
+              ✅ All your settings are automatically saved to your device and will persist when you close or restart the app.
+            </Text>
+          </View>
+
           {/* Critical Alarm Settings */}
           <AlarmSettings
             soundEnabled={soundEnabled}
@@ -342,7 +354,7 @@ export default function Settings() {
               <Thermometer size={24} color="#3b82f6" />
               <Text style={styles.cardTitle}>Sensor Thresholds</Text>
             </View>
-            <Text style={styles.cardSubtitle}>Changes apply immediately to dashboard and alarms</Text>
+            <Text style={styles.cardSubtitle}>Changes are saved to device and apply immediately to dashboard and alarms</Text>
             
             <TouchableOpacity 
               style={styles.settingButton}
@@ -382,6 +394,7 @@ export default function Settings() {
               onPress={handleResetToDefaults}
             >
               <Text style={styles.resetButtonText}>Reset to Default Settings</Text>
+              <Text style={styles.resetSubtext}>This will clear all saved settings from your device</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -488,6 +501,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontStyle: 'italic',
   },
+  storageInfo: {
+    fontSize: 14,
+    color: '#059669',
+    backgroundColor: '#ecfdf5',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10b981',
+    lineHeight: 20,
+  },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -528,6 +551,13 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontWeight: '500',
     textAlign: 'center',
+  },
+  resetSubtext: {
+    fontSize: 12,
+    color: '#991b1b',
+    textAlign: 'center',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   // Modal styles
   modalOverlay: {
